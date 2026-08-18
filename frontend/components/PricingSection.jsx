@@ -38,11 +38,11 @@ export default function PricingSection({
         }
         window.location.reload();
       } else {
-        toast.error("Failed to upgrade subscription. Please try again.");
+        toast.error(res?.error || "Failed to upgrade subscription. Please try again.");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong while upgrading subscription.");
+      toast.error(err?.message || "Something went wrong while upgrading subscription.");
     } finally {
       setIsSubscribing(false);
     }

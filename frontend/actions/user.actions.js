@@ -3,14 +3,16 @@
 import { checkUser } from "@/lib/checkUser";
 import { revalidatePath } from "next/cache";
 
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+const STRAPI_URL = (
+  process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337"
+).replace(/\/$/, "");
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 
 export async function upgradeUserToPro() {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, error: "Please sign in to upgrade subscription" };
     }
 
     const res = await fetch(`${STRAPI_URL}/api/users/${user.id}`, {
@@ -25,7 +27,10 @@ export async function upgradeUserToPro() {
     if (!res.ok) {
       const errText = await res.text();
       console.error("❌ Failed to update subscription tier:", errText);
-      throw new Error("Failed to update subscription tier in database");
+      return {
+        success: false,
+        error: "Failed to update subscription tier in database",
+      };
     }
 
     revalidatePath("/");
@@ -36,6 +41,6 @@ export async function upgradeUserToPro() {
     return { success: true };
   } catch (error) {
     console.error("❌ Error in upgradeUserToPro:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Failed to upgrade subscription" };
   }
 }
