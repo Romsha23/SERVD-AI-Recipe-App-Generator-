@@ -1,3 +1,4 @@
+// Production-ready middleware configuration
 module.exports = [
   'strapi::logger',
   'strapi::errors',
