@@ -30,11 +30,16 @@ const aj = arcjet({
 });
 
 export default clerkMiddleware(async (auth, req) => {
-  // Apply Arcjet protection FIRST (before Clerk auth check)
-  const decision = await aj.protect(req);
-
-  if (decision.isDenied()) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Apply Arcjet protection FIRST (if ARCJET_KEY is provided)
+  if (process.env.ARCJET_KEY && process.env.ARCJET_KEY !== "your_arcjet_api_key_here") {
+    try {
+      const decision = await aj.protect(req);
+      if (decision.isDenied()) {
+        return NextResponse.json({ error: "Forbidden by Arcjet security" }, { status: 403 });
+      }
+    } catch (arcjetErr) {
+      console.warn("Arcjet middleware protection skipped/error:", arcjetErr?.message);
+    }
   }
 
   // Then apply Clerk authentication

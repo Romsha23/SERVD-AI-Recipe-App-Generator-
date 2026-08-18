@@ -23,28 +23,32 @@ export async function scanPantryImage(formData) {
     // Check if user is Pro
     const isPro = user.subscriptionTier === "pro";
 
-    // Apply Arcjet rate limit based on tier
-    const arcjetClient = isPro ? proTierLimit : freePantryScans;
+    // Apply Arcjet rate limit based on tier if ARCJET_KEY is provided
+    if (process.env.ARCJET_KEY && process.env.ARCJET_KEY !== "your_arcjet_api_key_here") {
+      try {
+        const arcjetClient = isPro ? proTierLimit : freePantryScans;
+        const req = await request();
+        const decision = await arcjetClient.protect(req, {
+          userId: user.clerkId,
+          requested: 1,
+        });
 
-    // Create a request object for Arcjet
-    const req = await request();
-
-    const decision = await arcjetClient.protect(req, {
-      userId: user.clerkId, // Use clerkId from checkUser
-      requested: 1, // Request 1 token from bucket
-    });
-
-    if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        throw new Error(
-          `Monthly scan limit reached. ${
-            isPro
-              ? "Please contact support if you need more scans."
-              : "Upgrade to Pro for unlimited scans!"
-          }`
-        );
+        if (decision.isDenied()) {
+          if (decision.reason.isRateLimit()) {
+            return {
+              success: false,
+              error: `Monthly scan limit reached. ${
+                isPro
+                  ? "Please contact support if you need more scans."
+                  : "Upgrade to Pro for unlimited scans!"
+              }`,
+            };
+          }
+          return { success: false, error: "Request denied by security system" };
+        }
+      } catch (arcjetErr) {
+        console.warn("Arcjet rate limit check warning:", arcjetErr?.message);
       }
-      throw new Error("Request denied by security system");
     }
 
     const imageFile = formData.get("image");

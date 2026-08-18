@@ -566,29 +566,32 @@ export async function getRecipesByPantryIngredients() {
       return { success: false, recipes: [], error: "User not authenticated" };
     }
 
-    // ✅ ARCJET RATE LIMIT CHECK
+    // ✅ ARCJET RATE LIMIT CHECK (if ARCJET_KEY is provided)
     const isPro = user.subscriptionTier === "pro";
-    const arcjetClient = isPro ? proTierLimit : freeMealRecommendations;
+    if (process.env.ARCJET_KEY && process.env.ARCJET_KEY !== "your_arcjet_api_key_here") {
+      try {
+        const arcjetClient = isPro ? proTierLimit : freeMealRecommendations;
+        const req = await request();
+        const decision = await arcjetClient.protect(req, {
+          userId: user.clerkId,
+          requested: 1,
+        });
 
-    // Create a request object for Arcjet
-    const req = await request();
-
-    const decision = await arcjetClient.protect(req, {
-      userId: user.clerkId,
-      requested: 1,
-    });
-
-    if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        return {
-          success: false,
-          recipes: [],
-          error: `Monthly AI recipe limit reached. ${
-            isPro ? "Please contact support." : "Upgrade to Pro!"
-          }`,
-        };
+        if (decision.isDenied()) {
+          if (decision.reason.isRateLimit()) {
+            return {
+              success: false,
+              recipes: [],
+              error: `Monthly AI recipe limit reached. ${
+                isPro ? "Please contact support." : "Upgrade to Pro!"
+              }`,
+            };
+          }
+          return { success: false, recipes: [], error: "Request denied by rate limiter" };
+        }
+      } catch (arcjetErr) {
+        console.warn("Arcjet rate limit check warning:", arcjetErr?.message);
       }
-      return { success: false, recipes: [], error: "Request denied by rate limiter" };
     }
 
     // Get user's pantry items
