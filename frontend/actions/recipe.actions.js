@@ -189,17 +189,15 @@ async function createFallbackRecipe(normalizedTitle, imageUrl) {
         if (meal.strInstructions) {
           const instructionLines = meal.strInstructions
             .split(/\r?\n/)
-            .filter(line => line.trim().length > 0);
+            .filter(line => line.trim().length > 20); // Filter out very short lines
           
           instructionLines.forEach((line, index) => {
-            if (line.length > 20) { // Filter out very short lines
-              instructions.push({
-                step: index + 1,
-                title: `Step ${index + 1}`,
-                instruction: line.trim(),
-                tip: ""
-              });
-            }
+            instructions.push({
+              step: index + 1, // This will now be sequential: 1, 2, 3, 4...
+              title: `Step ${index + 1}`,
+              instruction: line.trim(),
+              tip: ""
+            });
           });
         }
 
