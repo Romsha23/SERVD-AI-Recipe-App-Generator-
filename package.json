@@ -12,6 +12,9 @@
     "start": "cd frontend && npm run start",
     "lint": "npm run lint --prefix frontend"
   },
+  "dependencies": {
+    "next": "16.1.1"
+  },
   "devDependencies": {
     "concurrently": "^9.1.2"
   }

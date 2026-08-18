@@ -489,7 +489,7 @@ export async function saveRecipeToCollection(formData) {
     };
   } catch (error) {
     console.error("❌ Error saving recipe to collection:", error);
-    throw new Error(error.message || "Failed to save recipe");
+    return { success: false, error: error.message || "Failed to save recipe" };
   }
 }
 
@@ -498,12 +498,12 @@ export async function removeRecipeFromCollection(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, error: "User not authenticated" };
     }
 
     const recipeId = formData.get("recipeId");
     if (!recipeId) {
-      throw new Error("Recipe ID is required");
+      return { success: false, error: "Recipe ID is required" };
     }
 
     // Find saved recipe relation
@@ -518,7 +518,7 @@ export async function removeRecipeFromCollection(formData) {
     );
 
     if (!searchResponse.ok) {
-      throw new Error("Failed to find saved recipe");
+      return { success: false, error: "Failed to find saved recipe" };
     }
 
     const searchData = await searchResponse.json();
@@ -543,7 +543,7 @@ export async function removeRecipeFromCollection(formData) {
     );
 
     if (!deleteResponse.ok) {
-      throw new Error("Failed to remove recipe from collection");
+      return { success: false, error: "Failed to remove recipe from collection" };
     }
 
     console.log("✅ Recipe removed from user collection");
@@ -554,7 +554,7 @@ export async function removeRecipeFromCollection(formData) {
     };
   } catch (error) {
     console.error("❌ Error removing recipe from collection:", error);
-    throw new Error(error.message || "Failed to remove recipe");
+    return { success: false, error: error.message || "Failed to remove recipe" };
   }
 }
 
@@ -563,7 +563,7 @@ export async function getRecipesByPantryIngredients() {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, recipes: [], error: "User not authenticated" };
     }
 
     // ✅ ARCJET RATE LIMIT CHECK
@@ -580,13 +580,15 @@ export async function getRecipesByPantryIngredients() {
 
     if (decision.isDenied()) {
       if (decision.reason.isRateLimit()) {
-        throw new Error(
-          `Monthly AI recipe limit reached. ${
+        return {
+          success: false,
+          recipes: [],
+          error: `Monthly AI recipe limit reached. ${
             isPro ? "Please contact support." : "Upgrade to Pro!"
-          }`
-        );
+          }`,
+        };
       }
-      throw new Error("Request denied");
+      return { success: false, recipes: [], error: "Request denied by rate limiter" };
     }
 
     // Get user's pantry items
@@ -601,7 +603,7 @@ export async function getRecipesByPantryIngredients() {
     );
 
     if (!pantryResponse.ok) {
-      throw new Error("Failed to fetch pantry items");
+      return { success: false, recipes: [], error: "Failed to fetch pantry items" };
     }
 
     const pantryData = await pantryResponse.json();
@@ -609,6 +611,7 @@ export async function getRecipesByPantryIngredients() {
     if (!pantryData.data || pantryData.data.length === 0) {
       return {
         success: false,
+        recipes: [],
         message: "Your pantry is empty. Add ingredients first!",
       };
     }
@@ -688,7 +691,7 @@ Return ONLY a valid JSON array (no markdown, no explanations):
     };
   } catch (error) {
     console.error("❌ Error in getRecipesByPantryIngredients:", error);
-    throw new Error(error.message || "Failed to get recipe suggestions");
+    return { success: false, recipes: [], error: error.message || "Failed to get recipe suggestions" };
   }
 }
 
@@ -697,7 +700,12 @@ export async function getSavedRecipes() {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return {
+        success: false,
+        recipes: [],
+        count: 0,
+        error: "User not authenticated or backend unavailable",
+      };
     }
 
     // Fetch saved recipes with populated recipe data
@@ -712,13 +720,18 @@ export async function getSavedRecipes() {
     );
 
     if (!response.ok) {
-      throw new Error("Failed to fetch saved recipes");
+      return {
+        success: false,
+        recipes: [],
+        count: 0,
+        error: "Failed to fetch saved recipes",
+      };
     }
 
     const data = await response.json();
 
     // Extract recipes from saved-recipes relations
-    const recipes = data.data
+    const recipes = (data.data || [])
       .map((savedRecipe) => savedRecipe.recipe)
       .filter(Boolean); // Remove any null recipes
 
@@ -729,6 +742,11 @@ export async function getSavedRecipes() {
     };
   } catch (error) {
     console.error("Error fetching saved recipes:", error);
-    throw new Error(error.message || "Failed to load saved recipes");
+    return {
+      success: false,
+      recipes: [],
+      count: 0,
+      error: error.message || "Failed to load saved recipes",
+    };
   }
 }

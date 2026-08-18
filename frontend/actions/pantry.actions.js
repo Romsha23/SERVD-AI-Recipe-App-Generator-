@@ -117,7 +117,7 @@ Return ONLY a valid JSON array with this exact structure (no markdown, no explan
     };
   } catch (error) {
     console.error("Error scanning pantry:", error);
-    throw new Error(error.message || "Failed to scan image");
+    return { success: false, error: error.message || "Failed to scan image" };
   }
 }
 
@@ -126,14 +126,14 @@ export async function saveToPantry(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, error: "User not authenticated" };
     }
 
     const ingredientsJson = formData.get("ingredients");
     const ingredients = JSON.parse(ingredientsJson);
 
     if (!ingredients || ingredients.length === 0) {
-      throw new Error("No ingredients to save");
+      return { success: false, error: "No ingredients to save" };
     }
 
     // Create pantry items in Strapi
@@ -168,7 +168,7 @@ export async function saveToPantry(formData) {
     };
   } catch (error) {
     console.error("Error saving to pantry:", error);
-    throw new Error(error.message || "Failed to save items");
+    return { success: false, error: error.message || "Failed to save items" };
   }
 }
 
@@ -177,14 +177,14 @@ export async function addPantryItemManually(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, error: "User not authenticated" };
     }
 
     const name = formData.get("name");
     const quantity = formData.get("quantity");
 
     if (!name || !quantity) {
-      throw new Error("Name and quantity are required");
+      return { success: false, error: "Name and quantity are required" };
     }
 
     const response = await fetch(`${STRAPI_URL}/api/pantry-items`, {
@@ -206,7 +206,7 @@ export async function addPantryItemManually(formData) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Failed to add item:", errorText);
-      throw new Error("Failed to add item to pantry");
+      return { success: false, error: "Failed to add item to pantry" };
     }
 
     const data = await response.json();
@@ -218,7 +218,7 @@ export async function addPantryItemManually(formData) {
     };
   } catch (error) {
     console.error("Error adding item manually:", error);
-    throw new Error(error.message || "Failed to add item");
+    return { success: false, error: error.message || "Failed to add item" };
   }
 }
 
@@ -227,7 +227,12 @@ export async function getPantryItems() {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return {
+        success: false,
+        items: [],
+        scansLimit: 10,
+        error: "User not authenticated or backend unavailable",
+      };
     }
 
     const response = await fetch(
@@ -241,7 +246,12 @@ export async function getPantryItems() {
     );
 
     if (!response.ok) {
-      throw new Error("Failed to fetch pantry items");
+      return {
+        success: false,
+        items: [],
+        scansLimit: 10,
+        error: "Failed to fetch pantry items from Strapi backend",
+      };
     }
 
     const data = await response.json();
@@ -255,7 +265,12 @@ export async function getPantryItems() {
     };
   } catch (error) {
     console.error("Error fetching pantry:", error);
-    throw new Error(error.message || "Failed to load pantry");
+    return {
+      success: false,
+      items: [],
+      scansLimit: 10,
+      error: error.message || "Failed to load pantry",
+    };
   }
 }
 
@@ -264,7 +279,7 @@ export async function deletePantryItem(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, error: "User not authenticated" };
     }
 
     const itemId = formData.get("itemId");
@@ -277,7 +292,7 @@ export async function deletePantryItem(formData) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to delete item");
+      return { success: false, error: "Failed to delete item" };
     }
 
     return {
@@ -286,7 +301,7 @@ export async function deletePantryItem(formData) {
     };
   } catch (error) {
     console.error("Error deleting item:", error);
-    throw new Error(error.message || "Failed to delete item");
+    return { success: false, error: error.message || "Failed to delete item" };
   }
 }
 
@@ -295,7 +310,7 @@ export async function updatePantryItem(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, error: "User not authenticated" };
     }
 
     const itemId = formData.get("itemId");
@@ -317,7 +332,7 @@ export async function updatePantryItem(formData) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update item");
+      return { success: false, error: "Failed to update item" };
     }
 
     const data = await response.json();
@@ -329,6 +344,6 @@ export async function updatePantryItem(formData) {
     };
   } catch (error) {
     console.error("Error updating item:", error);
-    throw new Error(error.message || "Failed to update item");
+    return { success: false, error: error.message || "Failed to update item" };
   }
 }

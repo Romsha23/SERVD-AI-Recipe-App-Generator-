@@ -19,8 +19,15 @@ export const checkUser = async () => {
     }
 
     // Check if user has Pro plan
-    const { has } = await auth();
-    const hasClerkPro = has({ plan: "pro" });
+    let hasClerkPro = false;
+    try {
+      const authObj = await auth();
+      if (typeof authObj?.has === "function") {
+        hasClerkPro = authObj.has({ plan: "pro" });
+      }
+    } catch (e) {
+      console.warn("Clerk has() check warning:", e?.message);
+    }
 
     // Check if user exists in Strapi
     const existingUserResponse = await fetch(
@@ -115,6 +122,9 @@ export const checkUser = async () => {
     const newUser = await newUserResponse.json();
     return newUser;
   } catch (error) {
+    if (error?.digest === "DYNAMIC_SERVER_USAGE" || error?.message?.includes("Dynamic server usage")) {
+      throw error;
+    }
     console.error("❌ Error in checkUser:", error.message);
     return null;
   }
