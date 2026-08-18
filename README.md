@@ -1,23 +1,3 @@
-# SERVD & Subspace Product Evaluation 🚀
-
-> **Candidate:** Romsha Wadhwa  
-> **Submission Document:** [📄 View Full Subspace Product Intern Assignment](file:///d:/SERVD/SUBSPACE_PRODUCT_INTERN_ASSIGNMENT.md) (End-to-End Walkthrough, UX Audit, AARRR Funnel, & Growth Strategy)
-
----
-
-## 📌 Featured Assignment Submission
-- **Product Evaluated:** Subspace ([subspace.money](https://subspace.money))
-- **File Link:** [`SUBSPACE_PRODUCT_INTERN_ASSIGNMENT.md`](file:///d:/SERVD/SUBSPACE_PRODUCT_INTERN_ASSIGNMENT.md)
-- **Sections Included:**
-  1. Executive Summary & Point of View
-  2. Part 1: End-to-End User Journey Maps (7 Core Flows)
-  3. Part 2: Business & Market Understanding (Personas, Monetization, Competitors, Legal/Trust Risk)
-  4. Part 3: Usability & UX Audit (Top 3 Friction Points, Usability Ratings, 30% Step Reduction)
-  5. Part 4: Growth & Funnel Analysis (AARRR Breakdown, Acquisition & Retention Levers)
-  6. Part 5: #1 Product Recommendation One-Pager (Interactive First-Action Wizard with RICE Scoring)
-  7. Part 6: Strategic Reflection & Assumptions Log
-
----
 
 ## SERVD - AI Recipe Platform 🍳✨
 > Full-stack AI-powered recipe generation and pantry management platform.
@@ -143,11 +123,7 @@ npm install
 cp .env.example .env
 ```
 
-Update `DATABASE_URL` in `backend/.env` with your Neon PostgreSQL connection string:
-```env
-DATABASE_CLIENT=postgres
-DATABASE_URL=postgres://user:password@ep-sample-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
-```
+Update `DATABASE_URL` in `backend/.env` with your Neon PostgreSQL connection string
 
 Run Strapi in development mode:
 ```bash
