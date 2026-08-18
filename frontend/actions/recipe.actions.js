@@ -26,7 +26,10 @@ import { DISH_REGISTRY } from "@/lib/dishRegistry";
 import { RECIPE_DATABASE, getRecipeFromDatabase } from "@/lib/recipeDatabase";
 
 // Helper function to fetch image for a specific dish
+// Helper function to fetch image for a specific dish
 async function fetchRecipeImage(recipeName) {
+  const fallbackImage = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80";
+  
   try {
     const nameLower = recipeName.trim().toLowerCase();
 
@@ -78,7 +81,7 @@ async function fetchRecipeImage(recipeName) {
       }
     }
 
-    // 3. Try Unsplash API if valid key present
+    // 4. Try Unsplash API if valid key present
     if (UNSPLASH_ACCESS_KEY && UNSPLASH_ACCESS_KEY !== "your_unsplash_access_key_here") {
       try {
         const response = await fetch(
@@ -103,10 +106,11 @@ async function fetchRecipeImage(recipeName) {
       }
     }
 
-    return "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80";
+    console.log("⚠️ Using fallback image for", recipeName);
+    return fallbackImage;
   } catch (error) {
     console.error("❌ Error fetching dish image:", error);
-    return "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80";
+    return fallbackImage;
   }
 }
 
@@ -434,7 +438,9 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
 
     // FORCE title & image
     recipeData.title = normalizedTitle;
-    recipeData.imageUrl = imageUrl || recipeData.imageUrl || "";
+    recipeData.imageUrl = imageUrl || recipeData.imageUrl || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80";
+    
+    console.log("📸 Recipe image URL set to:", recipeData.imageUrl);
 
     const validCategories = ["breakfast", "lunch", "dinner", "snack", "dessert"];
     const category = validCategories.includes(recipeData.category?.toLowerCase())
