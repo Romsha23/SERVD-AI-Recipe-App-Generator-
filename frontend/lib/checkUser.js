@@ -48,6 +48,8 @@ export const checkUser = async () => {
 
     const existingUserData = await existingUserResponse.json();
 
+    const initialTier = hasClerkPro ? "pro" : "free";
+
     if (existingUserData.length > 0) {
       const existingUser = existingUserData[0];
       const subscriptionTier =
@@ -79,7 +81,7 @@ export const checkUser = async () => {
     );
 
     const rolesData = await rolesResponse.json();
-    const authenticatedRole = rolesData.roles.find(
+    const authenticatedRole = rolesData.roles?.find(
       (role) => role.type === "authenticated"
     );
 
@@ -91,8 +93,8 @@ export const checkUser = async () => {
     // Create new user
     const userData = {
       username:
-        user.username || user.emailAddresses[0].emailAddress.split("@")[0],
-      email: user.emailAddresses[0].emailAddress,
+        user.username || user.emailAddresses[0]?.emailAddress.split("@")[0] || `user_${user.id.slice(-6)}`,
+      email: user.emailAddresses[0]?.emailAddress || `${user.id}@example.com`,
       password: `clerk_managed_${user.id}_${Date.now()}`,
       confirmed: true,
       blocked: false,
@@ -101,7 +103,7 @@ export const checkUser = async () => {
       firstName: user.firstName || "",
       lastName: user.lastName || "",
       imageUrl: user.imageUrl || "",
-      subscriptionTier,
+      subscriptionTier: initialTier,
     };
 
     const newUserResponse = await fetch(`${STRAPI_URL}/api/users`, {
