@@ -106,11 +106,14 @@ async function fetchRecipeImage(recipeName) {
 }
 
 // Helper function to build a high-quality fallback recipe when AI API hits quota limits
-function createFallbackRecipe(normalizedTitle, imageUrl) {
+async function createFallbackRecipe(normalizedTitle, imageUrl) {
   let desc = `A classic and flavorful ${normalizedTitle} prepared with traditional seasonings and fresh ingredients.`;
   let category = "dinner";
   let cuisine = "indian";
+  let ingredients = [];
+  let instructions = [];
 
+  // Try to get data from DISH_REGISTRY first
   if (DISH_REGISTRY) {
     for (const catKey in DISH_REGISTRY) {
       const d = DISH_REGISTRY[catKey].find(
@@ -125,6 +128,79 @@ function createFallbackRecipe(normalizedTitle, imageUrl) {
     }
   }
 
+  // Try to fetch from TheMealDB for detailed recipe data
+  try {
+    const mealDbRes = await fetch(
+      `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(normalizedTitle)}`,
+      { cache: "no-store" }
+    );
+    if (mealDbRes.ok) {
+      const mealData = await mealDbRes.json();
+      if (mealData.meals && mealData.meals.length > 0) {
+        const meal = mealData.meals[0];
+        
+        // Extract ingredients from TheMealDB format
+        for (let i = 1; i <= 20; i++) {
+          const ingredient = meal[`strIngredient${i}`];
+          const measure = meal[`strMeasure${i}`];
+          if (ingredient && ingredient.trim()) {
+            ingredients.push({
+              item: ingredient.trim(),
+              amount: measure ? measure.trim() : "to taste",
+              category: "Other"
+            });
+          }
+        }
+
+        // Parse instructions from TheMealDB
+        if (meal.strInstructions) {
+          const instructionLines = meal.strInstructions
+            .split(/\r?\n/)
+            .filter(line => line.trim().length > 0);
+          
+          instructionLines.forEach((line, index) => {
+            if (line.length > 20) { // Filter out very short lines
+              instructions.push({
+                step: index + 1,
+                title: `Step ${index + 1}`,
+                instruction: line.trim(),
+                tip: ""
+              });
+            }
+          });
+        }
+
+        // Update description if available
+        if (meal.strInstructions && meal.strInstructions.length > 100) {
+          desc = meal.strInstructions.substring(0, 150) + "...";
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("TheMealDB fallback failed:", e);
+  }
+
+  // If we still don't have ingredients, use generic ones
+  if (ingredients.length === 0) {
+    ingredients = [
+      { item: `Main Ingredients for ${normalizedTitle}`, amount: "500g", category: "Protein" },
+      { item: "Aromatic Herbs & Spices", amount: "2 tbsp", category: "Spice" },
+      { item: "Fresh Chopped Onions & Tomatoes", amount: "2 cups", category: "Vegetable" },
+      { item: "Cooking Oil or Ghee", amount: "2 tbsp", category: "Other" },
+      { item: "Salt & Black Pepper to taste", amount: "1 tsp", category: "Spice" }
+    ];
+  }
+
+  // If we don't have instructions, use generic ones
+  if (instructions.length === 0) {
+    instructions = [
+      { step: 1, title: "Prepare Ingredients", instruction: `Clean and chop all fresh ingredients required for ${normalizedTitle}.`, tip: "Keep ingredients measured and ready before cooking." },
+      { step: 2, title: "Sauté Aromatics", instruction: "Heat oil or butter in a pan over medium heat. Add spices, chopped onions, and sauté until golden brown and fragrant.", tip: "Stir continuously to prevent burning." },
+      { step: 3, title: "Cook & Simmer", instruction: `Add the main ingredients along with seasonings into the pan. Cover and simmer over medium heat until cooked through and rich in flavor.`, tip: "Adjust seasoning according to taste preference." },
+      { step: 4, title: "Garnish & Serve", instruction: `Transfer ${normalizedTitle} to a serving dish, garnish with fresh herbs, and serve hot.`, tip: "Pairs best with fresh bread or steamed rice." }
+    ];
+  }
+
   return {
     title: normalizedTitle,
     description: desc,
@@ -133,19 +209,8 @@ function createFallbackRecipe(normalizedTitle, imageUrl) {
     prepTime: 15,
     cookTime: 25,
     servings: 4,
-    ingredients: [
-      { item: `Main Ingredients for ${normalizedTitle}`, amount: "500g", category: "Protein" },
-      { item: "Aromatic Herbs & Spices", amount: "2 tbsp", category: "Spice" },
-      { item: "Fresh Chopped Onions & Tomatoes", amount: "2 cups", category: "Vegetable" },
-      { item: "Cooking Oil or Ghee", amount: "2 tbsp", category: "Other" },
-      { item: "Salt & Black Pepper to taste", amount: "1 tsp", category: "Spice" }
-    ],
-    instructions: [
-      { step: 1, title: "Prepare Ingredients", instruction: `Clean and chop all fresh ingredients required for ${normalizedTitle}.`, tip: "Keep ingredients measured and ready before cooking." },
-      { step: 2, title: "Sauté Aromatics", instruction: "Heat oil or butter in a pan over medium heat. Add spices, chopped onions, and sauté until golden brown and fragrant.", tip: "Stir continuously to prevent burning." },
-      { step: 3, title: "Cook & Simmer", instruction: `Add the main ingredients along with seasonings into the pan. Cover and simmer over medium heat until cooked through and rich in flavor.`, tip: "Adjust seasoning according to taste preference." },
-      { step: 4, title: "Garnish & Serve", instruction: `Transfer ${normalizedTitle} to a serving dish, garnish with fresh herbs, and serve hot.`, tip: "Pairs best with fresh bread or steamed rice." }
-    ],
+    ingredients: ingredients,
+    instructions: instructions,
     nutrition: {
       calories: "380 kcal",
       protein: "16g",
@@ -325,7 +390,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
       recipeData = JSON.parse(cleanText);
     } catch (aiError) {
       console.warn("⚠️ Gemini AI quota/error reached. Serving high quality fallback recipe:", aiError.message);
-      recipeData = createFallbackRecipe(normalizedTitle, imageUrl);
+      recipeData = await createFallbackRecipe(normalizedTitle, imageUrl);
     }
 
     // FORCE title & image
@@ -411,7 +476,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
     const fallbackImage = await fetchRecipeImage(normalizedTitle);
     return {
       success: true,
-      recipe: createFallbackRecipe(normalizedTitle, fallbackImage),
+      recipe: await createFallbackRecipe(normalizedTitle, fallbackImage),
       recipeId: 999,
       isSaved: false,
       fromDatabase: false,
