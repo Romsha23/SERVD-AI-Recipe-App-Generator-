@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Production deployment configuration
 const nextConfig = {
   experimental: {
     serverComponentsHmrCache: false, // defaults to true
