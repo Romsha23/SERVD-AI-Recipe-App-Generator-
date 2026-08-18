@@ -306,9 +306,12 @@ export async function getOrGenerateRecipe(formData) {
           let existingRecipe = searchData.data[0];
           console.log("✅ Recipe found in database:", existingRecipe.id);
 
+          // Always fetch fresh image to ensure correct mapping
           const freshImage = await fetchRecipeImage(normalizedTitle);
           if (freshImage && existingRecipe.imageUrl !== freshImage) {
+            console.log("🔄 Updating recipe image from", existingRecipe.imageUrl, "to", freshImage);
             existingRecipe.imageUrl = freshImage;
+            // Update in background - don't wait
             fetch(`${STRAPI_URL}/api/recipes/${existingRecipe.id}`, {
               method: "PUT",
               headers: {
@@ -316,7 +319,7 @@ export async function getOrGenerateRecipe(formData) {
                 Authorization: `Bearer ${STRAPI_API_TOKEN}`,
               },
               body: JSON.stringify({ data: { imageUrl: freshImage } }),
-            }).catch((err) => console.error(err));
+            }).catch((err) => console.error("Failed to update image:", err));
           }
 
           let isSaved = false;
