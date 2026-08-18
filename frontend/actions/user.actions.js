@@ -12,7 +12,10 @@ export async function upgradeUserToPro() {
   try {
     const user = await checkUser();
     if (!user) {
-      return { success: false, error: "Please sign in to upgrade subscription" };
+      return {
+        success: false,
+        error: "User session unhydrated. Please refresh the page (Ctrl + Shift + R) and try again.",
+      };
     }
 
     const res = await fetch(`${STRAPI_URL}/api/users/${user.id}`, {
