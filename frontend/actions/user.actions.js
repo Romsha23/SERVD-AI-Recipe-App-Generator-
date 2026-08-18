@@ -18,7 +18,8 @@ export async function upgradeUserToPro() {
       };
     }
 
-    const res = await fetch(`${STRAPI_URL}/api/users/${user.id}`, {
+    const userId = user.id;
+    const res = await fetch(`${STRAPI_URL}/api/users/${userId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -29,10 +30,10 @@ export async function upgradeUserToPro() {
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("❌ Failed to update subscription tier:", errText);
+      console.error("❌ Failed to update subscription tier:", res.status, errText);
       return {
         success: false,
-        error: "Failed to update subscription tier in database",
+        error: `Failed to update tier (${res.status}): ${errText || "Database error"}`,
       };
     }
 
