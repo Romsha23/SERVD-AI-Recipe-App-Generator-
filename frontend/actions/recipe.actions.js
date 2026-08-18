@@ -41,18 +41,7 @@ async function fetchRecipeImage(recipeName) {
       }
     }
 
-    // 2. Partial lookup (only if recipeName contains full dish name)
-    for (const categoryKey in DISH_REGISTRY) {
-      const partial = DISH_REGISTRY[categoryKey].find(
-        (d) => nameLower.includes(d.name.toLowerCase())
-      );
-      if (partial && partial.image) {
-        console.log("✅ Found DISH_REGISTRY partial image for", recipeName, ":", partial.image);
-        return partial.image;
-      }
-    }
-
-    // 2. Try search on TheMealDB API
+    // 2. Try search on TheMealDB API first for non-exact matches
     try {
       const mealDbRes = await fetch(
         `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(recipeName)}`,
@@ -65,13 +54,28 @@ async function fetchRecipeImage(recipeName) {
             mealData.meals.find((m) => m.strMeal.toLowerCase() === nameLower) ||
             mealData.meals[0];
           if (match?.strMealThumb) {
-            console.log("✅ Found MealDB exact image for", recipeName, ":", match.strMealThumb);
+            console.log("✅ Found MealDB image for", recipeName, ":", match.strMealThumb);
             return match.strMealThumb;
           }
         }
       }
     } catch (e) {
       console.warn("TheMealDB search failed:", e);
+    }
+
+    // 3. Partial lookup in DISH_REGISTRY (only if TheMealDB didn't return anything)
+    for (const categoryKey in DISH_REGISTRY) {
+      const partial = DISH_REGISTRY[categoryKey].find(
+        (d) => {
+          const dishName = d.name.toLowerCase();
+          // Match if query contains full dish name or dish name contains query
+          return nameLower.includes(dishName) || dishName.includes(nameLower);
+        }
+      );
+      if (partial && partial.image) {
+        console.log("✅ Found DISH_REGISTRY partial image for", recipeName, ":", partial.image);
+        return partial.image;
+      }
     }
 
     // 3. Try Unsplash API if valid key present
