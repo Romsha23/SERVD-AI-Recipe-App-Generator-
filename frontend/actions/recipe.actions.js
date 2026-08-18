@@ -23,6 +23,7 @@ function normalizeTitle(title) {
 }
 
 import { DISH_REGISTRY } from "@/lib/dishRegistry";
+import { RECIPE_DATABASE, getRecipeFromDatabase } from "@/lib/recipeDatabase";
 
 // Helper function to fetch image for a specific dish
 async function fetchRecipeImage(recipeName) {
@@ -113,7 +114,38 @@ async function createFallbackRecipe(normalizedTitle, imageUrl) {
   let ingredients = [];
   let instructions = [];
 
-  // Try to get data from DISH_REGISTRY first
+  // 1. Try our curated recipe database first
+  const curatedRecipe = getRecipeFromDatabase(normalizedTitle);
+  if (curatedRecipe) {
+    console.log("✅ Found recipe in curated database:", normalizedTitle);
+    return {
+      title: normalizedTitle,
+      description: desc,
+      category: category,
+      cuisine: cuisine,
+      prepTime: 20,
+      cookTime: 30,
+      servings: 4,
+      ingredients: curatedRecipe.ingredients,
+      instructions: curatedRecipe.instructions,
+      nutrition: {
+        calories: "350 kcal",
+        protein: "15g",
+        carbs: "40g",
+        fat: "12g"
+      },
+      tips: [
+        "Use fresh ingredients for optimal authentic flavor.",
+        "Adjust seasoning to suit your personal preference."
+      ],
+      substitutions: [
+        { original: "Butter", alternatives: ["Olive oil", "Ghee"] }
+      ],
+      imageUrl: imageUrl || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80"
+    };
+  }
+
+  // 2. Try to get data from DISH_REGISTRY
   if (DISH_REGISTRY) {
     for (const catKey in DISH_REGISTRY) {
       const d = DISH_REGISTRY[catKey].find(
@@ -128,7 +160,7 @@ async function createFallbackRecipe(normalizedTitle, imageUrl) {
     }
   }
 
-  // Try to fetch from TheMealDB for detailed recipe data
+  // 3. Try to fetch from TheMealDB for detailed recipe data
   try {
     const mealDbRes = await fetch(
       `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(normalizedTitle)}`,
@@ -138,6 +170,7 @@ async function createFallbackRecipe(normalizedTitle, imageUrl) {
       const mealData = await mealDbRes.json();
       if (mealData.meals && mealData.meals.length > 0) {
         const meal = mealData.meals[0];
+        console.log("✅ Found recipe in TheMealDB:", normalizedTitle);
         
         // Extract ingredients from TheMealDB format
         for (let i = 1; i <= 20; i++) {
@@ -180,8 +213,9 @@ async function createFallbackRecipe(normalizedTitle, imageUrl) {
     console.warn("TheMealDB fallback failed:", e);
   }
 
-  // If we still don't have ingredients, use generic ones
+  // 4. If we still don't have ingredients, use generic ones
   if (ingredients.length === 0) {
+    console.log("⚠️ Using generic recipe template for:", normalizedTitle);
     ingredients = [
       { item: `Main Ingredients for ${normalizedTitle}`, amount: "500g", category: "Protein" },
       { item: "Aromatic Herbs & Spices", amount: "2 tbsp", category: "Spice" },
@@ -191,7 +225,7 @@ async function createFallbackRecipe(normalizedTitle, imageUrl) {
     ];
   }
 
-  // If we don't have instructions, use generic ones
+  // 5. If we don't have instructions, use generic ones
   if (instructions.length === 0) {
     instructions = [
       { step: 1, title: "Prepare Ingredients", instruction: `Clean and chop all fresh ingredients required for ${normalizedTitle}.`, tip: "Keep ingredients measured and ready before cooking." },
