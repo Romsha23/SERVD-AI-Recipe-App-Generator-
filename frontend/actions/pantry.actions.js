@@ -1,7 +1,7 @@
 "use server";
 
 import { checkUser } from "@/lib/checkUser";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { freePantryScans, proTierLimit } from "@/lib/arcjet";
 import { request } from "@arcjet/next";
 
@@ -10,7 +10,7 @@ const STRAPI_URL =
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 // Scan image with Gemini Vision
 export async function scanPantryImage(formData) {
@@ -63,10 +63,7 @@ export async function scanPantryImage(formData) {
 
     let ingredients = [];
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-      const prompt = `
-You are a professional chef and ingredient recognition expert. Analyze this image of a pantry/fridge and identify all visible food ingredients.
+      const prompt = `You are a professional chef and ingredient recognition expert. Analyze this image of a pantry/fridge and identify all visible food ingredients.
 
 Return ONLY a valid JSON array with this exact structure (no markdown, no explanations):
 [
@@ -78,18 +75,24 @@ Return ONLY a valid JSON array with this exact structure (no markdown, no explan
 ]
 `;
 
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            mimeType: imageFile.type,
-            data: base64Image,
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: imageFile.type,
+                  data: base64Image,
+                },
+              },
+            ],
           },
-        },
-      ]);
+        ],
+      });
 
-      const response = await result.response;
-      const text = response.text();
+      const text = result.text;
 
       const cleanText = text
         .replace(/```json\n?/g, "")

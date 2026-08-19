@@ -1,7 +1,7 @@
 "use server";
 
 import { checkUser } from "@/lib/checkUser";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { freeMealRecommendations, proTierLimit } from "@/lib/arcjet";
 import { request } from "@arcjet/next";
 
@@ -11,7 +11,7 @@ const STRAPI_URL =
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 // Helper function to normalize recipe title
 function normalizeTitle(title) {
@@ -371,8 +371,6 @@ export async function getOrGenerateRecipe(formData) {
     let recipeData;
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
       const prompt = `
 You are a professional chef and recipe expert. Generate a detailed recipe for: "${normalizedTitle}"
 
@@ -422,9 +420,11 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
 }
 `;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+      });
+      const text = result.text;
 
       const cleanText = text
         .replace(/```json\n?/g, "")
@@ -735,8 +735,6 @@ export async function getRecipesByPantryIngredients() {
 
     let recipeSuggestions = [];
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
       const prompt = `
 You are a professional chef. Given these available ingredients: ${ingredients}
 
@@ -758,9 +756,11 @@ Return ONLY a valid JSON array (no markdown, no explanations):
 ]
 `;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+      });
+      const text = result.text;
 
       const cleanText = text
         .replace(/```json\n?/g, "")
