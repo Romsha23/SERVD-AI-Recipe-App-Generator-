@@ -98,13 +98,11 @@ Return ONLY a valid JSON array with this exact structure (no markdown, no explan
       ingredients = JSON.parse(cleanText);
     } catch (aiErr) {
       console.warn("⚠️ Gemini Vision quota/error:", aiErr.message);
-      ingredients = [
-        { name: "Fresh Tomatoes", quantity: "3 medium", confidence: 0.95 },
-        { name: "Onions", quantity: "2 large", confidence: 0.90 },
-        { name: "Cheddar Cheese", quantity: "200g", confidence: 0.85 },
-        { name: "Chicken Breast", quantity: "500g", confidence: 0.88 },
-        { name: "Eggs", quantity: "6 large", confidence: 0.92 }
-      ];
+      // Return error to user so they know scanning failed - don't silently return fake data
+      return {
+        success: false,
+        error: `AI scanning failed: ${aiErr.message}. Please try again or add items manually.`,
+      };
     }
 
     if (!Array.isArray(ingredients) || ingredients.length === 0) {
