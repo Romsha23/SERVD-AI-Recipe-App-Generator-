@@ -310,34 +310,44 @@ export async function getOrGenerateRecipe(formData) {
           let existingRecipe = searchData.data[0];
           console.log("✅ Recipe found in database:", existingRecipe.id);
 
-          // Always fetch fresh image to ensure correct mapping
-          const freshImage = await fetchRecipeImage(normalizedTitle);
-          if (freshImage && existingRecipe.imageUrl !== freshImage) {
-            console.log("🔄 Updating recipe image from", existingRecipe.imageUrl, "to", freshImage);
-            existingRecipe.imageUrl = freshImage;
-            // Update in background - don't wait
-            fetch(`${STRAPI_URL}/api/recipes/${existingRecipe.id}`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-              },
-              body: JSON.stringify({ data: { imageUrl: freshImage } }),
-            }).catch((err) => console.error("Failed to update image:", err));
-          }
+          // Check if this recipe has proper AI-generated content or just generic fallback
+          const hasGenericContent = !existingRecipe.ingredients ||
+            existingRecipe.ingredients.length === 0 ||
+            (existingRecipe.ingredients[0]?.item || "").toLowerCase().includes("main ingredients for");
 
-          let isSaved = false;
-          if (user) {
-            try {
-              const savedRecipeResponse = await fetch(
-                `${STRAPI_URL}/api/saved-recipes?filters[user][id][$eq]=${user.id}&filters[recipe][id][$eq]=${existingRecipe.id}`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-                  },
-                  cache: "no-store",
-                }
-              );
+          if (hasGenericContent) {
+            // Recipe has stale/generic data — delete it and regenerate
+            console.log("🔄 Recipe has generic content, regenerating with AI...");
+            fetch(`${STRAPI_URL}/api/recipes/${existingRecipe.id}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+            }).catch(() => {});
+            // Fall through to regenerate below
+          } else {
+            // Recipe has proper content — just refresh image
+            const freshImage = await fetchRecipeImage(normalizedTitle);
+            if (freshImage && existingRecipe.imageUrl !== freshImage) {
+              existingRecipe.imageUrl = freshImage;
+              fetch(`${STRAPI_URL}/api/recipes/${existingRecipe.id}`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+                },
+                body: JSON.stringify({ data: { imageUrl: freshImage } }),
+              }).catch((err) => console.error("Failed to update image:", err));
+            }
+
+            let isSaved = false;
+            if (user) {
+              try {
+                const savedRecipeResponse = await fetch(
+                  `${STRAPI_URL}/api/saved-recipes?filters[user][id][$eq]=${user.id}&filters[recipe][id][$eq]=${existingRecipe.id}`,
+                  {
+                    headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+                    cache: "no-store",
+                  }
+                );
 
               if (savedRecipeResponse.ok) {
                 const savedData = await savedRecipeResponse.json();
@@ -357,6 +367,7 @@ export async function getOrGenerateRecipe(formData) {
             isPro,
             message: "Recipe loaded from database",
           };
+          } // end else (has proper content)
         }
       }
     } catch (dbErr) {
