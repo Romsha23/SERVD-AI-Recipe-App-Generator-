@@ -24,8 +24,8 @@ module.exports = [
       origin: [
         'http://localhost:3000',
         'https://localhost:3000',
+        'https://servd-romsha.vercel.app',
         'https://servd-romsha-fullstack-project.vercel.app',
-        'https://frontend-two-henna-26.vercel.app',
         process.env.FRONTEND_URL || '*',
       ],
     },
