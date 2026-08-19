@@ -769,12 +769,17 @@ Return ONLY a valid JSON array (no markdown, no explanations):
       recipeSuggestions = JSON.parse(cleanText);
     } catch (aiErr) {
       console.warn("⚠️ Gemini AI quota/error in pantry recipes:", aiErr.message);
+      
+      // Create dynamic recipe suggestions based on actual ingredients
+      const ingredientList = ingredients.split(", ");
+      const mainIngredient = ingredientList[0] || "Pantry Items";
+      
       recipeSuggestions = [
         {
-          title: "Special Pantry Stir-Fry",
-          description: `A delicious stir-fry dish created using ${ingredients}.`,
-          matchPercentage: 92,
-          missingIngredients: ["Cooking Oil", "Salt"],
+          title: `${mainIngredient} Stir-Fry`,
+          description: `A quick and easy stir-fry featuring ${mainIngredient} with ${ingredientList.slice(1, 3).join(" and ")}.`,
+          matchPercentage: 95,
+          missingIngredients: ["Soy Sauce", "Cooking Oil"],
           category: "dinner",
           cuisine: "asian",
           prepTime: 15,
@@ -782,15 +787,26 @@ Return ONLY a valid JSON array (no markdown, no explanations):
           servings: 2
         },
         {
-          title: "Herbed Vegetable Medley",
-          description: `A nutritious, savory medley featuring ${ingredients}.`,
-          matchPercentage: 88,
-          missingIngredients: ["Black Pepper"],
+          title: `Grilled ${mainIngredient}`,
+          description: `Simple grilled ${mainIngredient} seasoned with herbs and spices from your pantry.`,
+          matchPercentage: 90,
+          missingIngredients: ["Olive Oil", "Black Pepper"],
           category: "lunch",
           cuisine: "mediterranean",
           prepTime: 10,
           cookTime: 15,
           servings: 2
+        },
+        {
+          title: `${mainIngredient} Curry`,
+          description: `A flavorful curry made with ${mainIngredient} and aromatic spices.`,
+          matchPercentage: 88,
+          missingIngredients: ["Curry Powder", "Coconut Milk"],
+          category: "dinner",
+          cuisine: "indian",
+          prepTime: 20,
+          cookTime: 30,
+          servings: 3
         }
       ];
     }
