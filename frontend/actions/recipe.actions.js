@@ -811,12 +811,20 @@ Return ONLY a valid JSON array (no markdown, no explanations):
       ];
     }
 
+    // Fetch images for each recipe suggestion in parallel
+    const recipesWithImages = await Promise.all(
+      recipeSuggestions.map(async (recipe) => {
+        const imageUrl = await fetchRecipeImage(recipe.title);
+        return { ...recipe, imageUrl };
+      })
+    );
+
     return {
       success: true,
-      recipes: recipeSuggestions,
+      recipes: recipesWithImages,
       ingredientsUsed: ingredients,
       recommendationsLimit: isPro ? "unlimited" : 5,
-      message: `Found ${recipeSuggestions.length} recipes you can make!`,
+      message: `Found ${recipesWithImages.length} recipes you can make!`,
     };
   } catch (error) {
     console.error("❌ Error in getRecipesByPantryIngredients:", error);
