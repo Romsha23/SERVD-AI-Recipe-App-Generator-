@@ -53,9 +53,17 @@ async function fetchRecipeImage(recipeName) {
       if (mealDbRes.ok) {
         const mealData = await mealDbRes.json();
         if (mealData.meals && mealData.meals.length > 0) {
-          const match =
-            mealData.meals.find((m) => m.strMeal.toLowerCase() === nameLower) ||
-            mealData.meals[0];
+          // Only use TheMealDB image if the name is a close match
+          const exactMatch = mealData.meals.find(
+            (m) => m.strMeal.toLowerCase() === nameLower
+          );
+          // For exact match use it; for partial match only use if first word matches
+          const firstWord = nameLower.split(" ")[0];
+          const partialMatch = mealData.meals.find(
+            (m) => m.strMeal.toLowerCase().startsWith(firstWord) || 
+                   m.strMeal.toLowerCase().includes(firstWord)
+          );
+          const match = exactMatch || partialMatch;
           if (match?.strMealThumb) {
             console.log("✅ Found MealDB image for", recipeName, ":", match.strMealThumb);
             return match.strMealThumb;
@@ -81,32 +89,62 @@ async function fetchRecipeImage(recipeName) {
       }
     }
 
-    // 4. Try Unsplash API if valid key present
-    if (UNSPLASH_ACCESS_KEY && UNSPLASH_ACCESS_KEY !== "your_unsplash_access_key_here") {
-      try {
-        const response = await fetch(
-          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
-            `${recipeName} food dish`
-          )}&per_page=1&orientation=landscape`,
-          {
-            headers: {
-              Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results && data.results.length > 0) {
-            return data.results[0].urls.regular;
-          }
+    // 4. Try Unsplash API with recipe-specific search
+    try {
+      const unsplashQuery = encodeURIComponent(`${recipeName} food recipe dish`);
+      const unsplashRes = await fetch(
+        `https://source.unsplash.com/featured/800x600/?${unsplashQuery}`,
+        { method: "HEAD", redirect: "follow", cache: "no-store" }
+      );
+      if (unsplashRes.ok || unsplashRes.redirected) {
+        const imgUrl = unsplashRes.url;
+        if (imgUrl && imgUrl.includes("unsplash.com/photos")) {
+          console.log("✅ Unsplash image for", recipeName, ":", imgUrl);
+          return imgUrl;
         }
-      } catch (e) {
-        console.warn("Unsplash API search failed:", e);
+      }
+    } catch (e) {
+      console.warn("Unsplash source failed:", e);
+    }
+
+    // 5. Keyword-based fallback image — better than one steak photo for everything
+    const keywordMap = {
+      cake: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&q=80",
+      bread: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80",
+      chicken: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=800&q=80",
+      pasta: "https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=800&q=80",
+      rice: "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=800&q=80",
+      soup: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&q=80",
+      salad: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80",
+      curry: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&q=80",
+      biryani: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&q=80",
+      cookie: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=800&q=80",
+      brownie: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80",
+      pizza: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80",
+      burger: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80",
+      steak: "https://images.unsplash.com/photo-1558030006-450675393462?w=800&q=80",
+      fish: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&q=80",
+      tart: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=800&q=80",
+      pie: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&q=80",
+      sandwich: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&q=80",
+      omelette: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800&q=80",
+      pancake: "https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=800&q=80",
+      smoothie: "https://images.unsplash.com/photo-1638176066666-ffb2f013c7dd?w=800&q=80",
+      dessert: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&q=80",
+      date: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=800&q=80",
+      walnut: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&q=80",
+      honey: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&q=80",
+      banana: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80",
+      chocolate: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80",
+    };
+    for (const [keyword, img] of Object.entries(keywordMap)) {
+      if (nameLower.includes(keyword)) {
+        console.log("✅ Keyword-matched image for", recipeName, "keyword:", keyword);
+        return img;
       }
     }
 
-    console.log("⚠️ Using fallback image for", recipeName);
+    console.log("⚠️ Using generic fallback image for", recipeName);
     return fallbackImage;
   } catch (error) {
     console.error("❌ Error fetching dish image:", error);
