@@ -421,7 +421,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
 `;
 
       const result = await genAI.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.6-flash",
         contents: prompt,
       });
       const text = result.text;
@@ -757,7 +757,7 @@ Return ONLY a valid JSON array (no markdown, no explanations):
 `;
 
       const result = await genAI.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.6-flash",
         contents: prompt,
       });
       const text = result.text;
