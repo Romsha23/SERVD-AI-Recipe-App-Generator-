@@ -55,8 +55,7 @@ export default async function LandingPage() {
               </Link>
 
               <p className="mt-6 text-sm text-stone-500">
-                <span className="font-bold text-stone-900">10k+ cooks</span>{" "}
-                joined last month
+                Free to start — no credit card required
               </p>
             </div>
 
@@ -127,8 +126,6 @@ export default async function LandingPage() {
           ))}
         </div>
       </section>
-
-      {/* Features */}
       <section className="py-24 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="mb-16">
